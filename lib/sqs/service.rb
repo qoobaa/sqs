@@ -26,13 +26,13 @@ module Sqs
       @debug = options[:debug]
     end
 
-    # Returns all buckets in the service and caches the result (see reload)
-    def buckets(reload = false)
-      if reload or @buckets.nil?
-        response = service_request(:get)
-        @buckets = parse_buckets(response.body)
+    # Returns all queues in the service and caches the result (see reload)
+    def queues(reload = false)
+      if reload or @queues.nil?
+        response = service_request(:params => { "Action" => "ListQueues" })
+        @queues = parse_queues(response.body)
       else
-        @buckets
+        @queues
       end
     end
 
@@ -46,35 +46,36 @@ module Sqs
       use_ssl ? 443 : 80
     end
 
-    proxy :buckets do
-      # Builds new bucket with given name
-      def build(name)
-        Bucket.new(proxy_owner, name)
+    proxy :queues do
+      # Builds new queue with given name
+      def create(name, default_visibility_timeout = nil)
+        url = proxy_owner.send(:create_queue, name, default_visibility_timeout)
+        Queue.new(proxy_owner, url)
       end
 
-      # Finds the bucket with given name
+      # Finds the queue with given name
       def find_first(name)
-        bucket = build(name)
-        bucket.retrieve
+        queue = build(name)
+        queue.retrieve
       end
       alias :find :find_first
 
-      # Find all buckets in the service
+      # Find all queues in the service
       def find_all
         proxy_target
       end
 
-      # Reloads the bucket list (clears the cache)
+      # Reloads the queue list (clears the cache)
       def reload
-        proxy_owner.buckets(true)
+        proxy_owner.queues(true)
       end
 
-      # Destroy all buckets in the service. Doesn't destroy non-empty
-      # buckets by default, pass true to force destroy (USE WITH
+      # Destroy all queues in the service. Doesn't destroy non-empty
+      # queues by default, pass true to force destroy (USE WITH
       # CARE!).
       def destroy_all(force = false)
-        proxy_target.each do |bucket|
-          bucket.destroy(force)
+        proxy_target.each do |queue|
+          queue.destroy(force)
         end
       end
     end
@@ -85,8 +86,17 @@ module Sqs
 
     private
 
-    def service_request(method, options = {})
-      connection.request(method, options.merge(:path => "/#{options[:path]}"))
+    def create_queue(name, default_visibility_timeout = nil)
+      params = {
+        "Action" => "CreateQueue",
+        "QueueName" => name,
+      }
+      params["DefaultVisibilityTimeout"] = default_visibility_timeout if default_visibility_timeout
+      service_request({ :params => params })
+    end
+
+    def service_request(options = {})
+      connection.request(options.merge(:path => "/#{options[:path]}"))
     end
 
     def connection
@@ -101,13 +111,13 @@ module Sqs
       @connection
     end
 
-    def parse_buckets(xml_body)
+    def parse_queues(xml_body)
       xml = XmlSimple.xml_in(xml_body)
-      buckets = xml["Buckets"].first["Bucket"]
-      if buckets
-        buckets_names = buckets.map { |bucket| bucket["Name"].first }
-        buckets_names.map do |bucket_name|
-          Bucket.new(self, bucket_name)
+      queues = xml["ListQueuesResult"]
+      if queues
+        queues_names = queues.map { |queue| queue["QueueUrl"].first }
+        queues_names.map do |queue_name|
+          Queue.new(self, queue_name)
         end
       else
         []

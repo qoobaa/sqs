@@ -4,9 +4,6 @@ module Sqs
   #
   # Implements algorithm defined by Amazon Web Services to sign
   # request with secret private credentials
-  #
-  # === See:
-  # http://docs.amazonwebservices.com/AmazonS3/latest/index.html?RESTAuthentication.html
 
   class Signature
 

@@ -15,8 +15,10 @@ require "sqs/connection"
 require "sqs/exceptions"
 require "sqs/service"
 require "sqs/signature"
+require "sqs/support"
+require "sqs/queue"
 
 module Sqs
-  # Default (and only) host serving S3 stuff
+  # Default (and only) host serving SQS stuff
   HOST = "queue.amazonaws.com"
 end
