@@ -103,7 +103,7 @@ module Sqs
         else
           xml = XmlSimple.xml_in(response.body)
           message = xml["Error"].first
-          code = xml["Error"].first["Code"].first.gsub(".", "")
+          code = xml["Error"].first["Code"].first.split(".").last
           raise Error::ResponseError.exception(code).new(message, response)
         end
       else

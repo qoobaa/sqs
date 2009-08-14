@@ -33,8 +33,10 @@ module Sqs
       response = queue_request(:params => { "Action" => "SendMessage", "MessageBody" => body })
     end
 
-    def message
-      response = queue_request(:params => { "Action" => "ReceiveMessage" })
+    def message(visibility_timeout = nil)
+      params = {}
+      params["VisibilityTimeout"] = visibility_timeout.to_s if visibility_timeout
+      response = queue_request(:params => params.merge("Action" => "ReceiveMessage"))
       parse_receive_message_result(response.body).first
     end
 

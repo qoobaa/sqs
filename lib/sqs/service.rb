@@ -77,6 +77,7 @@ module Sqs
         proxy_target.each do |queue|
           queue.destroy
         end
+        true
       end
     end
 

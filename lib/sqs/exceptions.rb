@@ -40,15 +40,15 @@ module Sqs
 
     class AccessDenied < ResponseError; end
     class AuthFailure < ResponseError; end
-    class AWSSimpleQueueServiceInternalError < ResponseError; end
-    class AWSSimpleQueueServiceNonExistentQueue < ResponseError; end
     class ConflictingQueryParameter < ResponseError; end
     class ElementNotSigned < ResponseError; end
     class InternalError < ResponseError; end
     class InvalidAccessKeyId < ResponseError; end
     class InvalidAction < ResponseError; end
     class InvalidAddress < ResponseError; end
+    class InvalidAttributeName < ResponseError; end
     class InvalidHttpRequest < ResponseError; end
+    class InvalidMessageContents < ResponseError; end
     class InvalidParameterCombination < ResponseError; end
     class InvalidParameterValue < ResponseError; end
     class InvalidQueryParameter < ResponseError; end
@@ -57,17 +57,22 @@ module Sqs
     class InvalidSecurityToken < ResponseError; end
     class MalformedSOAPSignature < ResponseError; end
     class MalformedVersion < ResponseError; end
+    class MessageTooLong < ResponseError; end
     class MissingClientTokenId < ResponseError; end
     class MissingCredentials < ResponseError; end
     class MissingParameter < ResponseError; end
     class NoSuchVersion < ResponseError; end
+    class NonExistentQueue < ResponseError; end
     class NotAuthorizedToUseVersion < ResponseError; end
+    class QueueDeletedRecently < ResponseError; end
+    class QueueNameExists < ResponseError; end
+    class ReadCountOutOfRange < ResponseError; end
     class RequestExpired < ResponseError; end
     class RequestThrottled < ResponseError; end
-    class SignatureDoesNotMatch < ResponseError; end
-    class ServiceUnavailable < ResponseError; end
     class SOAP11IncorrectDateFormat < ResponseError; end
     class SOAP11MissingAction < ResponseError; end
+    class ServiceUnavailable < ResponseError; end
+    class SignatureDoesNotMatch < ResponseError; end
     class SoapBodyMissing < ResponseError; end
     class SoapEnvelopeMissing < ResponseError; end
     class SoapEnvelopeParseError < ResponseError; end
