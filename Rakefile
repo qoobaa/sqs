@@ -7,11 +7,10 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "sqs"
-    gem.summary = %Q{Library for accessing S3 objects and buckets, with command line tool}
+    gem.summary = %Q{Simple Queue Service accessing library}
     gem.email = "qoobaa@gmail.com"
     gem.homepage = "http://github.com/qoobaa/sqs"
     gem.authors = ["Jakub Kuźma"]
-    gem.add_dependency "trollop", ">=1.14"
     # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
   end
 

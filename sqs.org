@@ -1,9 +1,0 @@
-* ListQueues
-* CreateQueue
-* DeleteQueue
-* GetQueueAttributes
-* SetQueueAttributes
-* DeleteMessage
-* ReceiveMessage
-* SendMessage
-
