@@ -3,7 +3,6 @@
 * DeleteQueue
 * GetQueueAttributes
 * SetQueueAttributes
-* ChangeMessageVisibility
 * DeleteMessage
 * ReceiveMessage
 * SendMessage

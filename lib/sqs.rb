@@ -13,6 +13,7 @@ require "sqs/roxy/moxie"
 
 require "sqs/connection"
 require "sqs/exceptions"
+require "sqs/message"
 require "sqs/service"
 require "sqs/signature"
 require "sqs/support"

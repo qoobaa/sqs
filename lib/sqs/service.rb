@@ -30,7 +30,7 @@ module Sqs
     def queues(reload = false)
       if reload or @queues.nil?
         response = service_request(:params => { "Action" => "ListQueues" })
-        @queues = parse_queues(response.body)
+        @queues = parse_list_queues_result(response.body)
       else
         @queues
       end
@@ -50,7 +50,7 @@ module Sqs
       # Builds new queue with given name
       def create(name, default_visibility_timeout = nil)
         url = proxy_owner.send(:create_queue, name, default_visibility_timeout)
-        Queue.new(proxy_owner, url)
+        # Queue.new(proxy_owner, url)
       end
 
       # Finds the queue with given name
@@ -92,7 +92,8 @@ module Sqs
         "QueueName" => name,
       }
       params["DefaultVisibilityTimeout"] = default_visibility_timeout if default_visibility_timeout
-      service_request({ :params => params })
+      response = service_request({ :params => params })
+      parse_create_queue_result(response.body)
     end
 
     def service_request(options = {})
@@ -111,17 +112,24 @@ module Sqs
       @connection
     end
 
-    def parse_queues(xml_body)
+    def parse_list_queues_result(xml_body)
       xml = XmlSimple.xml_in(xml_body)
-      queues = xml["ListQueuesResult"]
-      if queues
-        queues_names = queues.map { |queue| queue["QueueUrl"].first }
-        queues_names.map do |queue_name|
-          Queue.new(self, queue_name)
+      list_queue_result = xml["ListQueuesResult"].first
+      queue_urls = list_queue_result["QueueUrl"]
+      if queue_urls
+        queue_urls.map do |queue_url|
+          Queue.new(self, queue_url)
         end
       else
         []
       end
+    end
+
+    def parse_create_queue_result(xml_body)
+      xml = XmlSimple.xml_in(xml_body)
+      create_queue_result = xml["CreateQueueResult"]
+      queue_url = create_queue_result.first["QueueUrl"].first
+      Queue.new(self, queue_url)
     end
   end
 end
