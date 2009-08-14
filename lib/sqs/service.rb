@@ -29,8 +29,7 @@ module Sqs
     # Returns all queues in the service and caches the result (see reload)
     def queues(reload = false)
       if reload or @queues.nil?
-        response = service_request(:params => { "Action" => "ListQueues" })
-        @queues = parse_list_queues_result(response.body)
+        @queues = list_queues
       else
         @queues
       end
@@ -50,19 +49,22 @@ module Sqs
       # Builds new queue with given name
       def create(name, default_visibility_timeout = nil)
         url = proxy_owner.send(:create_queue, name, default_visibility_timeout)
-        # Queue.new(proxy_owner, url)
+        true
       end
 
       # Finds the queue with given name
       def find_first(name)
-        queue = build(name)
-        queue.retrieve
+        proxy_owner.send(:list_queues, name).first
       end
       alias :find :find_first
 
       # Find all queues in the service
-      def find_all
-        proxy_target
+      def find_all(name)
+        if name and not name.empty?
+          proxy_owner.send(:list_queues, name)
+        else
+          proxy_target
+        end
       end
 
       # Reloads the queue list (clears the cache)
@@ -70,12 +72,10 @@ module Sqs
         proxy_owner.queues(true)
       end
 
-      # Destroy all queues in the service. Doesn't destroy non-empty
-      # queues by default, pass true to force destroy (USE WITH
-      # CARE!).
-      def destroy_all(force = false)
+      # Destroy all queues in the service (USE WITH CARE!).
+      def destroy_all
         proxy_target.each do |queue|
-          queue.destroy(force)
+          queue.destroy
         end
       end
     end
@@ -85,6 +85,13 @@ module Sqs
     end
 
     private
+
+    def list_queues(name = "")
+      params = {}
+      params["QueueNamePrefix"] = name if name and not name.empty?
+      response = service_request(:params => params.merge({ "Action" => "ListQueues" }))
+      parse_list_queues_result(response.body)
+    end
 
     def create_queue(name, default_visibility_timeout = nil)
       params = {
