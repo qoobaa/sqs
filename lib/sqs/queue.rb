@@ -3,53 +3,48 @@ module Sqs
     extend Forwardable
 
     attr_reader :path, :name, :service
-
     def_instance_delegators :service, :service_request
+    private_class_method :new
 
     def ==(other)
       self.name == other.name and self.service == other.service
     end
 
     def destroy
-      queue_request({ :params => { "Action" => "DeleteQueue" } })
+      delete_queue
       true
     end
 
     def attributes
-      response = queue_request({ :params => { "Action" => "GetQueueAttributes", "AttributeName" => "All" }})
-      parse_get_queue_attributes_result(response.body)
+      get_queue_attributes
     end
 
     def update_attributes(attributes)
-      set_attributes = {}
-      attributes.each_with_index do |attribute, i|
-        set_attributes["Attribute.#{i + 1}.Name"] = attribute.first.to_s
-        set_attributes["Attribute.#{i + 1}.Value"] = attribute.last.to_s
-      end
-      response = queue_request(:params => set_attributes.merge("Action" => "SetQueueAttributes"))
+      set_queue_attributes(attributes)
+      true
     end
 
     def create_message(body)
-      response = queue_request(:params => { "Action" => "SendMessage", "MessageBody" => body })
+      create_message("MessageBody" => body)
+      true
     end
 
     def message(visibility_timeout = nil)
-      params = {}
-      params["VisibilityTimeout"] = visibility_timeout.to_s if visibility_timeout
-      response = queue_request(:params => params.merge("Action" => "ReceiveMessage"))
-      parse_receive_message_result(response.body).first
+      options = {}
+      options["VisibilityTimeout"] = visibility_timeout.to_s if visibility_timeout
+      receive_message(options)
     end
 
     def inspect #:nodoc:
       "#<#{self.class}:#{name}>"
     end
 
+    private
+
     def initialize(service, url) #:nodoc:
       self.service = service
       self.url = url
     end
-
-    private
 
     attr_writer :service, :path
 
@@ -60,7 +55,6 @@ module Sqs
     end
 
     def name=(name)
-      raise ArgumentError.new("Invalid queue name: #{name}") unless name_valid?(name)
       @name = name
     end
 
@@ -68,8 +62,31 @@ module Sqs
       service_request(options.merge(:path => path))
     end
 
-    def name_valid?(name)
-      name =~ /[a-zA-Z0-9_-]{1,80}/
+    def delete_queue
+      queue_request("Action" => "DeleteQueue")
+    end
+
+    def get_queue_attributes
+      response = queue_request("Action" => "GetQueueAttributes", "AttributeName" => "All")
+      parse_get_queue_attributes_result(response.body)
+    end
+
+    def set_queue_attributes(options)
+      attributes = {}
+      options.each_with_index do |attribute, i|
+        attributes["Attribute.#{i + 1}.Name"] = attribute.first.to_s
+        attributes["Attribute.#{i + 1}.Value"] = attribute.last.to_s
+      end
+      queue_request(attributes.merge("Action" => "SetQueueAttributes"))
+    end
+
+    def create_message(options)
+      queue_request(options.merge("Action" => "SendMessage"))
+    end
+
+    def receive_message(options)
+      response = queue_request(options.merge("Action" => "ReceiveMessage"))
+      parse_receive_message_result(response.body).first
     end
 
     def parse_get_queue_attributes_result(xml_body)
@@ -94,7 +111,7 @@ module Sqs
           receipt_handle = message["ReceiptHandle"].first
           md5_of_body = message["MD5OfBody"].first
           body = message["Body"].first
-          Message.new(self, :id => message_id, :receipt_handle => receipt_handle, :body_md5 => md5_of_body, :body => body)
+          Message.send(:new, self, :id => message_id, :receipt_handle => receipt_handle, :body_md5 => md5_of_body, :body => body)
         end
       else
         []

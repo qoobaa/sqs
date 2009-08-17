@@ -30,22 +30,51 @@ module Sqs
     # +options+:: hash of options
     #
     # ==== Options:
-    # +host+:: hostname to connecto to, optional, defaults to s3.amazonaws.com[s3.amazonaws.com]
+    # +host+:: hostname to connect to, optional, defaults to queue.amazonaws.com
     # +path+:: path to send request to, required, throws ArgumentError if not given
-    # +params+:: parameters to encode in the request body, can be String or Hash
     #
     # ==== Returns:
     # Net::HTTPResponse object -- response from remote server
     def request(options)
-      host = options[:host] || HOST
-      path = options[:path] or raise ArgumentError.new("no path given")
-      params = options[:params]
-      path = URI.escape(path)
+      host = options.delete(:host) || HOST
+      path = options.delete(:path) or raise ArgumentError, "No path given"
+
       request = Net::HTTP::Post.new(path)
-      send_request(host, request, params)
+
+      response = http(host).start do |http|
+        add_common_options!(options)
+        add_timestamp!(options)
+        add_signature!(host, path, options)
+
+        request.set_form_data(options)
+
+        http.request(request)
+      end
+
+      handle_response(response)
     end
 
     private
+
+    def add_common_options!(options)
+      options.merge!("AWSAccessKeyId"   => access_key_id,
+                     "SignatureMethod"  => "HmacSHA256",
+                     "SignatureVersion" => "2",
+                     "Version"          => "2009-02-01")
+    end
+
+    def add_timestamp!(options)
+      options["Timestamp"] = Time.now.utc.iso8601 if options["Timestamp"].nil? and options["Expires"].nil?
+    end
+
+    def add_signature!(host, path, options)
+      options["Signature"] = Signature.generate(:method => :post,
+                                                :host => host,
+                                                :path => path,
+                                                :access_key_id => access_key_id,
+                                                :secret_access_key => secret_access_key,
+                                                :params => options)
+    end
 
     def port
       use_ssl ? 443 : 80
@@ -58,35 +87,6 @@ module Sqs
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE if @use_ssl
       http.read_timeout = @timeout if @timeout
       http
-    end
-
-    def send_request(host, request, params)
-      response = http(host).start do |http|
-        host = http.address
-
-        request["Content-Type"] ||= "application/x-www-form-urlencoded"
-
-        if params["Timestamp"].nil? and params["Expires"].nil?
-          params["Timestamp"] = Time.now.utc.iso8601
-        end
-
-        params["SignatureMethod"] = "HmacSHA256"
-        params["SignatureVersion"] = "2"
-        params["Version"] = "2009-02-01"
-        params["AWSAccessKeyId"] = access_key_id
-        params["Signature"]= Signature.generate(:method => :post,
-                                                :host => host,
-                                                :path => request.path,
-                                                :access_key_id => access_key_id,
-                                                :secret_access_key => secret_access_key,
-                                                :params => params)
-
-        request.set_form_data(params)
-
-        http.request(request)
-      end
-
-      handle_response(response)
     end
 
     def handle_response(response)

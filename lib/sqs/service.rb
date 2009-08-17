@@ -19,8 +19,8 @@ module Sqs
     # +timeout+:: parameter for Net::HTTP module
     # +debug+:: prints the raw requests to STDOUT
     def initialize(options)
-      @access_key_id = options[:access_key_id] or raise ArgumentError.new("No access key id given")
-      @secret_access_key = options[:secret_access_key] or raise ArgumentError.new("No secret access key given")
+      @access_key_id = options[:access_key_id] or raise ArgumentError, "No access key id given"
+      @secret_access_key = options[:secret_access_key] or raise ArgumentError, "No secret access key given"
       @use_ssl = options[:use_ssl]
       @timeout = options[:timeout]
       @debug = options[:debug]
@@ -35,33 +35,24 @@ module Sqs
       end
     end
 
-    # Returns "http://" or "https://", depends on use_ssl value from initializer
-    def protocol
-      use_ssl ? "https://" : "http://"
-    end
-
-    # Return 443 or 80, depends on use_ssl value from initializer
-    def port
-      use_ssl ? 443 : 80
-    end
-
     proxy :queues do
       # Builds new queue with given name
       def create(name, default_visibility_timeout = nil)
-        url = proxy_owner.send(:create_queue, name, default_visibility_timeout)
-        true
+        options = { "QueueName" => name }
+        options["DefaultVisibilityTimeout"] = default_visibility_timeout if default_visibility_timeout
+        proxy_owner.send(:create_queue, options)
       end
 
       # Finds the queue with given name
       def find_first(name)
-        proxy_owner.send(:list_queues, name).first
+        find_all(name).first
       end
       alias :find :find_first
 
       # Find all queues in the service
       def find_all(name)
         if name and not name.empty?
-          proxy_owner.send(:list_queues, name)
+          proxy_owner.send(:list_queues, "QueueNamePrefix" => name)
         else
           proxy_target
         end
@@ -74,9 +65,7 @@ module Sqs
 
       # Destroy all queues in the service (USE WITH CARE!).
       def destroy_all
-        proxy_target.each do |queue|
-          queue.destroy
-        end
+        proxy_target.each { |queue| queue.destroy }
         true
       end
     end
@@ -87,21 +76,21 @@ module Sqs
 
     private
 
-    def list_queues(name = "")
-      params = {}
-      params["QueueNamePrefix"] = name if name and not name.empty?
-      response = service_request(:params => params.merge({ "Action" => "ListQueues" }))
+    def list_queues(options = {})
+      response = service_request(options.merge("Action" => "ListQueues"))
       parse_list_queues_result(response.body)
     end
 
-    def create_queue(name, default_visibility_timeout = nil)
-      params = {
-        "Action" => "CreateQueue",
-        "QueueName" => name,
-      }
-      params["DefaultVisibilityTimeout"] = default_visibility_timeout if default_visibility_timeout
-      response = service_request({ :params => params })
+    def create_queue(options)
+      name = options["QueueName"]
+      raise ArgumentError, "Invalid queue name: #{name}" unless queue_name_valid?(name)
+
+      response = service_request(options.merge("Action" => "CreateQueue"))
       parse_create_queue_result(response.body)
+    end
+
+    def queue_name_valid?(name)
+      name =~ /[a-zA-Z0-9_-]{1,80}/
     end
 
     def service_request(options = {})
@@ -126,7 +115,7 @@ module Sqs
       queue_urls = list_queue_result["QueueUrl"]
       if queue_urls
         queue_urls.map do |queue_url|
-          Queue.new(self, queue_url)
+          Queue.send(:new, self, queue_url)
         end
       else
         []
@@ -137,7 +126,7 @@ module Sqs
       xml = XmlSimple.xml_in(xml_body)
       create_queue_result = xml["CreateQueueResult"]
       queue_url = create_queue_result.first["QueueUrl"].first
-      Queue.new(self, queue_url)
+      Queue.send(:new, self, queue_url)
     end
   end
 end
