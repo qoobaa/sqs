@@ -1,15 +1,17 @@
-require "time"
-require "openssl"
-require "net/http"
-require "net/https"
+# stdlibs
 require "base64"
 require "forwardable"
+require "net/http"
+require "net/https"
+require "openssl"
+require "rexml/document"
+require "time"
 
-require "xmlsimple"
-
-require "sqs/roxy/proxy"
+# proxy stuff
 require "sqs/roxy/moxie"
+require "sqs/roxy/proxy"
 
+# sqs stuff
 require "sqs/connection"
 require "sqs/exceptions"
 require "sqs/message"
