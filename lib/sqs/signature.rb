@@ -30,7 +30,6 @@ module Sqs
       params = options[:params]
       path = options[:path]
 
-
       string_to_sign = ""
       string_to_sign << method.to_s.upcase
       string_to_sign << "\n"

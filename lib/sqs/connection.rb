@@ -89,10 +89,6 @@ module Sqs
       handle_response(response)
     end
 
-    def url_encode(string)
-      URI.encode(string, /[^a-zA-Z0-9_.~-]/)
-    end
-
     def handle_response(response)
       case response.code.to_i
       when 200...300
