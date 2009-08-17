@@ -2,6 +2,8 @@ module Sqs
 
   # Class responsible for handling connections to amazon hosts
   class Connection
+    include Parser
+
     attr_accessor :access_key_id, :secret_access_key, :use_ssl, :timeout, :debug
     alias :use_ssl? :use_ssl
 
@@ -45,9 +47,7 @@ module Sqs
         add_common_options!(options)
         add_timestamp!(options)
         add_signature!(host, path, options)
-
-        request.set_form_data(options)
-
+        set_form_data!(request, options)
         http.request(request)
       end
 
@@ -55,6 +55,11 @@ module Sqs
     end
 
     private
+
+    def set_form_data!(request, options)
+      request.set_form_data(options)
+      request.content_type = "application/x-www-form-urlencoded; charset=utf-8"
+    end
 
     def add_common_options!(options)
       options.merge!("AWSAccessKeyId"   => access_key_id,
@@ -97,13 +102,11 @@ module Sqs
         if response.body.nil? || response.body.empty?
           raise Error::ResponseError.new(nil, response)
         else
-          xml = XmlSimple.xml_in(response.body)
-          message = xml["Error"].first
-          code = xml["Error"].first["Code"].first.split(".").last
+          code, message = parse_error(response.body)
           raise Error::ResponseError.exception(code).new(message, response)
         end
       else
-        raise(ConnectionError.new(response, "Unknown response code: #{response.code}"))
+        raise ConnectionError.new(response, "Unknown response code: #{response.code}")
       end
       response
     end

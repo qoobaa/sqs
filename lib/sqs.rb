@@ -12,10 +12,10 @@ require "sqs/roxy/moxie"
 require "sqs/roxy/proxy"
 
 # sqs stuff
+require "sqs/parser"
 require "sqs/connection"
 require "sqs/exceptions"
 require "sqs/message"
-require "sqs/parser"
 require "sqs/queue"
 require "sqs/service"
 require "sqs/signature"

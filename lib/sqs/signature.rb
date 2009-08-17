@@ -6,6 +6,7 @@ module Sqs
   # request with secret private credentials
 
   class Signature
+    UNSAFE_REGEXP = /[^a-zA-Z0-9_.-]/
 
     # Generates signature for given parameters
     #
@@ -39,6 +40,10 @@ module Sqs
       string_to_sign << "\n"
       string_to_sign << canonicalized_query_string(params)
 
+      puts "*****"
+      puts string_to_sign
+      puts "*****"
+
       digest = OpenSSL::Digest::Digest.new("sha256")
       hmac = OpenSSL::HMAC.digest(digest, secret_access_key, string_to_sign)
       base64 = Base64.encode64(hmac)
@@ -49,13 +54,11 @@ module Sqs
 
     def self.canonicalized_query_string(params)
       results = params.sort.map do |param|
-        "#{url_encode(param.first)}=#{url_encode(param.last)}"
+        urlencoded_key = URI.encode(param.first, UNSAFE_REGEXP)
+        urlencoded_value = URI.encode(param.last, UNSAFE_REGEXP)
+        "#{urlencoded_key}=#{urlencoded_value}"
       end
       results.join("&")
-    end
-
-    def self.url_encode(string)
-      URI.encode(string, /[^a-zA-Z0-9_.-]/)
     end
   end
 end
