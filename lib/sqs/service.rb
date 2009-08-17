@@ -1,6 +1,7 @@
 module Sqs
   class Service
     extend Roxy::Moxie
+    include Parser
 
     attr_reader :access_key_id, :secret_access_key, :use_ssl
 
@@ -78,7 +79,10 @@ module Sqs
 
     def list_queues(options = {})
       response = service_request(options.merge("Action" => "ListQueues"))
-      parse_list_queues_result(response.body)
+
+      parse_list_queues_result(response.body).map do |url|
+        Queue.send(:new, self, url)
+      end
     end
 
     def create_queue(options)
@@ -86,11 +90,13 @@ module Sqs
       raise ArgumentError, "Invalid queue name: #{name}" unless queue_name_valid?(name)
 
       response = service_request(options.merge("Action" => "CreateQueue"))
-      parse_create_queue_result(response.body)
+
+      url = parse_create_queue_result(response.body)
+      Queue.send(:new, self, url)
     end
 
     def queue_name_valid?(name)
-      name =~ /[a-zA-Z0-9_-]{1,80}/
+      name =~ /\A[a-zA-Z0-9_-]{1,80}\Z/
     end
 
     def service_request(options = {})
@@ -107,26 +113,6 @@ module Sqs
         @connection.debug = @debug
       end
       @connection
-    end
-
-    def parse_list_queues_result(xml_body)
-      xml = XmlSimple.xml_in(xml_body)
-      list_queue_result = xml["ListQueuesResult"].first
-      queue_urls = list_queue_result["QueueUrl"]
-      if queue_urls
-        queue_urls.map do |queue_url|
-          Queue.send(:new, self, queue_url)
-        end
-      else
-        []
-      end
-    end
-
-    def parse_create_queue_result(xml_body)
-      xml = XmlSimple.xml_in(xml_body)
-      create_queue_result = xml["CreateQueueResult"]
-      queue_url = create_queue_result.first["QueueUrl"].first
-      Queue.send(:new, self, queue_url)
     end
   end
 end

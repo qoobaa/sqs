@@ -1,6 +1,7 @@
 module Sqs
   class Queue
     extend Forwardable
+    include Parser
 
     attr_reader :path, :name, :service
     def_instance_delegators :service, :service_request
@@ -25,14 +26,14 @@ module Sqs
     end
 
     def create_message(body)
-      create_message("MessageBody" => body)
+      send_message("MessageBody" => body)
       true
     end
 
     def message(visibility_timeout = nil)
       options = {}
       options["VisibilityTimeout"] = visibility_timeout.to_s if visibility_timeout
-      receive_message(options)
+      receive_message(options).first
     end
 
     def inspect #:nodoc:
@@ -80,41 +81,14 @@ module Sqs
       queue_request(attributes.merge("Action" => "SetQueueAttributes"))
     end
 
-    def create_message(options)
+    def send_message(options)
       queue_request(options.merge("Action" => "SendMessage"))
     end
 
     def receive_message(options)
       response = queue_request(options.merge("Action" => "ReceiveMessage"))
-      parse_receive_message_result(response.body).first
-    end
-
-    def parse_get_queue_attributes_result(xml_body)
-      xml = XmlSimple.xml_in(xml_body)
-      get_queue_attributes_result = xml["GetQueueAttributesResult"].first
-      attributes = get_queue_attributes_result["Attribute"]
-      attributes.inject({}) do |result, attribute|
-        attribute_name = attribute["Name"].first
-        attribute_value = attribute["Value"].first
-        result[attribute_name] = attribute_value
-        result
-      end
-    end
-
-    def parse_receive_message_result(xml_body)
-      xml = XmlSimple.xml_in(xml_body)
-      receive_message_result = xml["ReceiveMessageResult"].first
-      messages = receive_message_result["Message"]
-      if messages
-        messages.map do |message|
-          message_id = message["MessageId"].first
-          receipt_handle = message["ReceiptHandle"].first
-          md5_of_body = message["MD5OfBody"].first
-          body = message["Body"].first
-          Message.send(:new, self, :id => message_id, :receipt_handle => receipt_handle, :body_md5 => md5_of_body, :body => body)
-        end
-      else
-        []
+      parse_receive_message_result(response.body).map do |message_attributes|
+        Message.send(:new, self, message_attributes)
       end
     end
   end
