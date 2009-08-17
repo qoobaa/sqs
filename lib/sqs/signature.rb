@@ -40,10 +40,6 @@ module Sqs
       string_to_sign << "\n"
       string_to_sign << canonicalized_query_string(params)
 
-      puts "*****"
-      puts string_to_sign
-      puts "*****"
-
       digest = OpenSSL::Digest::Digest.new("sha256")
       hmac = OpenSSL::HMAC.digest(digest, secret_access_key, string_to_sign)
       base64 = Base64.encode64(hmac)
