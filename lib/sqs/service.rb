@@ -40,7 +40,7 @@ module Sqs
       # Builds new queue with given name
       def create(name, default_visibility_timeout = nil)
         options = { "QueueName" => name }
-        options["DefaultVisibilityTimeout"] = default_visibility_timeout if default_visibility_timeout
+        options["DefaultVisibilityTimeout"] = default_visibility_timeout.to_s if default_visibility_timeout
         proxy_owner.send(:create_queue, options)
       end
 
