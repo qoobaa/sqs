@@ -1,0 +1,25 @@
+= SQS
+
+SQS library provides access to Amazon's Simple Queue Service via REST
+API.
+
+* repository: http://github.com/qoobaa/sqs
+* issue tracker: http://github.com/qoobaa/sqs/issues
+* rdoc: http://qoobaa.github.com/sqs
+* gemcutter: http://gemcutter.org/gems/sqs
+
+== Installation
+
+If you don't have the Gemcutter sources yet:
+  gem sources -a http://gemcutter.org
+
+To install the gem type:
+  sudo gem install sqs
+
+== Usage
+
+Coming soon, see Rdoc documentation.
+
+== Copyright
+
+Copyright (c) 2009 Jakub Kuźma. See LICENSE for details.
