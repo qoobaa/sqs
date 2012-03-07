@@ -3,7 +3,13 @@ module Sqs
     include REXML
 
     def rexml_document(xml)
-      xml.force_encoding(Encoding::UTF_8) if xml.respond_to? :force_encoding
+      if xml.respond_to? :force_encoding
+        if defined?(REXML::Encoding::UTF_8)
+          xml.force_encoding(Encoding::UTF_8)
+        else
+          xml.force_encoding('utf-8')
+        end
+      end
       Document.new(xml)
     end
 
